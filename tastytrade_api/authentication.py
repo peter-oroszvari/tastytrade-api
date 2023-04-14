@@ -43,6 +43,7 @@ class TastytradeAuth:
             print(f"Error: {response.status_code}")
             return None
 
+
     def validate_session(self) -> Optional[Dict[str, str]]:
         """
         Validates the current session using the session token.
