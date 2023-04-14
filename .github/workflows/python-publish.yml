@@ -22,9 +22,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install build
 
+
     - name: Check if version changed
       id: check-version
       run: |
+        set -x
         CURRENT_VERSION=$(grep -Eo "version=\"[0-9]+\.[0-9]+\.[0-9]+\"" setup.py | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
         echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
         LATEST_VERSION=$(pip install --use-deprecated=legacy-resolver --no-deps --disable-pip-version-check --no-cache-dir -I -q -e . 2>&1 | grep -Eo "latest version is [0-9]+\.[0-9]+\.[0-9]+" | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
