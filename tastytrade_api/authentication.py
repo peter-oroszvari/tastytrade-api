@@ -61,6 +61,8 @@ class TastytradeAuth:
             return data
         else:
             print(f"Error: {response.status_code}")
+            print("Response text:", response.text)
+
             return None
 
     def destroy_session(self) -> bool:

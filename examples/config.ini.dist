@@ -1,0 +1,7 @@
+[ACCOUNT]
+username = 
+password =
+
+[WEBSOCKET]
+session_token = 
+websocket_url = wss://streamer.tastyworks.com
