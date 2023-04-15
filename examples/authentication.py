@@ -16,6 +16,10 @@ auth = TastytradeAuth(username, password)
 auth_data = auth.login()
 print("Session token:", auth.session_token)
 
+account = TastytradeAccount(auth.session_token, "https://api.tastyworks.com")
+accounts = account.get_accounts()
+
+print(accounts)
 """
 if auth_data:
     print("Successfully logged in!")
