@@ -136,7 +136,7 @@ class TastytradeStreamer:
 
         logger.info("WebSocket is connected")
         return True
-
+'''
 import logging
 
 logger = logging.getLogger()
@@ -155,3 +155,4 @@ if streamer.wait_for_connection():
     streamer.quote_alerts_subscribe()
     while streamer.ws.sock and streamer.ws.sock.connected:
         time.sleep(1)
+'''
