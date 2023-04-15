@@ -12,12 +12,20 @@ logger.addHandler(console_handler)
 
 def main():
     from tastytrade_api.streamer.streamer import TastytradeStreamer
+    from tastytrade_api.authentication import TastytradeAuth
 
     # Load configuration from file
     config = configparser.ConfigParser()
     config.read("config.ini")
-    session_token = config["WEBSOCKET"]["session_token"]
     websocket_url = config["WEBSOCKET"]["websocket_url"]
+    username = config.get('ACCOUNT', 'username')
+    password = config.get('ACCOUNT', 'password')
+    # Initialize the authentication object
+    auth = TastytradeAuth(username, password)
+
+    # Log in to the API
+    auth_data = auth.login()
+    session_token = auth.session_token
 
     streamer = TastytradeStreamer(session_token, websocket_url)
     streamer.connect()
