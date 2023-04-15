@@ -1,4 +1,11 @@
+import sys
+import os
+
+# add the parent directory of tastytrade_api to sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from tastytrade_api.authentication import TastytradeAuth
+from tastytrade_api.account.account_handler import TastytradeAccount
 import configparser
 
 config = configparser.ConfigParser()
