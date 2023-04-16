@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="tastytrade-api",
-    version="0.4.0",
+    version="0.5.0",
     author="Peter Oroszvari",
     author_email="peter@oroszvari.hu",
     description="A Python client for the Tastytrade API",
@@ -28,5 +28,6 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "requests",
+        ""
     ],
 )
