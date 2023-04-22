@@ -2,7 +2,7 @@ import websocket
 import threading
 import json
 import time
-from dx_mapping import Quote
+from .dx_mapping import Quote
 
 class DxFeedClient:
     HEARTBEAT_INTERVAL_SECONDS = 10

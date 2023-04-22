@@ -85,3 +85,27 @@ class TastytradeAuth:
         else:
             print(f"Error: {response.status_code}")
             return False
+        
+    def get_dxfeed_token(self) -> Optional[Dict[str, str]]:
+            """
+            Retrieves the dxfeed token by making a request to the Tastytrade endpoint.
+
+            Returns:
+                Optional[Dict[str, str]]: A dictionary containing the dxfeed token and other related data. Returns None if there's an error.
+            """
+            if not self.session_token:
+                print("Error: Session token not found. Please login first.")
+                return None
+
+            url = "https://api.tastytrade.com/quote-streamer-tokens"
+            headers = {"Authorization": self.session_token}
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                data = response.json()
+                return data
+            else:
+                print(f"Error: {response.status_code}")
+                print("Response text:", response.text)
+                return None
