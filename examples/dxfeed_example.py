@@ -8,7 +8,7 @@ username = config.get('ACCOUNT', 'username')
 password = config.get('ACCOUNT', 'password')
 
 auth = TastytradeAuth(username, password)
-dxfeedtoken = TastytradeAuth.get_dxfeed_token
+dxfeedtoken = TastytradeAuth.get_dxfeed_token()
 print(dxfeedtoken)
 
 """
