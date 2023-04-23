@@ -1,6 +1,5 @@
 import requests
 import json
-
 class TastytradeAccount:
     """
     Initializes a new instance of the API client with the given session token and API URL.
@@ -147,4 +146,60 @@ class TastytradeAccount:
         else:
             raise Exception(f"Error getting account net liq history: {response.status_code} - {response.content}")
 
+    def get_effective_margin_requirements(self, account_number, underlying_symbol):
+        """
+        This method is similar to the get_margin_requirements method, except that it retrieves the effective margin 
+        requirements for a specific underlying symbol rather than the overall margin/capital requirements report.
+        
+        Makes a GET request to the /accounts/{account_number}/margin-requirements/{underlying_symbol}/effective endpoint
+        for the specified account's effective margin requirements for the given underlying symbol, and returns the response
+        as a JSON object.
 
+        Args:
+            account_number (str): The account number for the account to retrieve effective margin requirements for.
+            underlying_symbol (str): The underlying symbol for which to retrieve effective margin requirements.
+
+        Returns:
+            dict: Dictionary containing the effective margin requirements, as returned by the API.
+
+        Raises:
+            Exception: If there was an error in the GET request or if the status code is not 200 OK.
+        """
+        headers = {
+            "Authorization": f"{self.session_token}"
+        }
+        response = requests.get(
+            f"{self.api_url}/accounts/{account_number}/margin-requirements/{underlying_symbol}/effective",
+            headers=headers
+        )
+        if response.status_code == 200:
+            response_data = response.json()
+            return response_data
+        else:
+            raise Exception(f"Error getting effective margin requirements for account {account_number}: "
+                            f"{response.status_code} - {response.content}")
+
+    def get_position_limit(self, account_number):
+        """
+        Makes a GET request to the /accounts/{account_number}/position-limit API endpoint for the specified account's
+        position limit, and returns the position limit.
+
+        Args:
+            account_number (str): The account number for the account to retrieve.
+
+        Returns:
+            int: The position limit for the account, as returned by the API.
+
+        Raises:
+            Exception: If there was an error in the GET request or if the status code is not 200 OK.
+        """
+        headers = {
+            "Authorization": f"{self.session_token}"
+        }
+        response = requests.get(f"{self.api_url}/accounts/{account_number}/position-limit", headers=headers)
+        if response.status_code == 200:
+            response_data = json.loads(response.content)
+            position_limit = response_data["data"]["positionLimit"]
+            return position_limit
+        else:
+            raise Exception(f"Error getting position limit for account {account_number}: {response.status_code} - {response.content}")
