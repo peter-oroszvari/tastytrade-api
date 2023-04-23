@@ -110,3 +110,41 @@ class TastytradeAccount:
         else:
             raise Exception(f"Error getting margin requirements for account {account_number}: {response.status_code} - {response.content}")
 
+    def get_account_net_liq_history(self, account_number: str, time_back: str = None, start_time: str = None) -> dict:
+        """
+        Makes a GET request to the /accounts/{account_number}/net-liq/history endpoint with the specified
+        parameters, and returns the response as a JSON object.
+
+        Args:
+            account_number (str): The account number for the account to retrieve net liq history.
+            
+            time_back (str): The duration of time to retrieve net liq history for. If given, will return data for a specific
+            period of time with a pre-defined time interval. Passing 1d will return the previous day of data in 5 minute 
+            intervals. This param is required if start-time is not given. 
+            1d - If equities market is open, this will return data starting from market open in 5 minute intervals.
+            If market is closed, will return data from previous market open.
+            
+            start_time (str): The starting datetime to retrieve net liq history from.
+            This param is required is time-back is not given.
+
+        Returns:
+            dict: Dictionary containing the response data, as returned by the API.
+
+        Raises:
+            Exception: If there was an error in the GET request or if the status code is not 200 OK.
+        """
+        headers = {
+            "Authorization": f"{self.session_token}"
+        }
+        params = {
+            "time-back": time_back,
+            "start-time": start_time
+        }
+        response = requests.get(f"{self.api_url}/accounts/{account_number}/net-liq/history", headers=headers, params=params)
+        if response.status_code == 200:
+            response_data = response.json()
+            return response_data
+        else:
+            raise Exception(f"Error getting account net liq history: {response.status_code} - {response.content}")
+
+
