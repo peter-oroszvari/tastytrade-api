@@ -1,5 +1,6 @@
 import requests
 from typing import List
+
 class MarketMetrics():
     """
     Initializes a new instance of the MarketMetrics client with the given session token and API URL.
@@ -68,4 +69,33 @@ class MarketMetrics():
             return response_data
         else:
             raise Exception(f"Error getting dividend data for symbol {symbol}: {response.status_code} - {response.content}")
+
+
+    def get_earnings_data(self, symbol: str, start_date: str = None) -> dict:
+        """
+        Makes a GET request to the /market-metrics/historic-corporate-events/earnings-reports/{symbol} endpoint
+        for the specified symbol's earnings data, and returns the response as a JSON object.
+
+        Args:
+            symbol (str): The symbol to query.
+            start_date (str, optional): The start date to limit earnings data from. Format is YYYY-MM-DD.
+
+        Returns:
+            dict: Dictionary containing the response data, as returned by the API.
+
+        Raises:
+            Exception: If there was an error in the GET request or if the status code is not 200 OK.
+        """
+        headers = {
+            "Authorization": f"{self.session_token}"
+        }
+        url = f"{self.api_url}/market-metrics/historic-corporate-events/earnings-reports/{symbol}"
+        if start_date:
+            url += f"?start-date={start_date}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            response_data = response.json()
+            return response_data
+        else:
+            raise Exception(f"Error getting earnings data for {symbol}: {response.status_code} - {response.content}")
 
