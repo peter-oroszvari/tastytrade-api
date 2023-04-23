@@ -109,3 +109,36 @@ class TastytradeAuth:
                 print(f"Error: {response.status_code}")
                 print("Response text:", response.text)
                 return None
+    def create_session(self, username: str, password: str, remember_me: bool = False, remember_token: str = None) -> Optional[Dict[str, str]]:
+        """
+        Creates a new user session with the Tastytrade API, using the specified username and password.
+
+        Args:
+            username (str): The username or email of the user.
+            password (str): The password for the user's account.
+            remember_me (bool): Whether the session should be extended for longer than normal via remember token. Defaults to False.
+            remember_token (str): The remember token. Allows skipping for 2 factor within its window.
+
+        Returns:
+            Optional[Dict[str, str]]: A dictionary containing the user's session token and other related data. Returns None if there's an error.
+        """
+        payload = {
+            "login": username,
+            "password": password,
+            "remember-me": remember_me,
+            "remember-token": remember_token
+        }
+
+        headers = {}
+        response = requests.post(self.url, headers=headers, json=payload)
+
+        if response.status_code == 201:
+            data = response.json()
+            self.session_token = data['data']['session-token']
+            self.remember_token = data['data']['remember-token']
+            self.user_data = data['data']['user']
+            self.token_timestamp = time.time()
+            return data
+        else:
+            print(f"Error: {response.status_code}")
+            return None
