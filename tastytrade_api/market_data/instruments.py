@@ -387,4 +387,29 @@ class TastytradeInstruments:
     TBD: Future options chanins and option chains implementation
     """
 
+    def get_symbol_data(self, symbol: str) -> List[Dict[str, Any]]:
+        """
+        Makes a GET request to the /symbols/search/{symbol} API endpoint and returns an array of symbol data.
+
+        Args:
+            symbol (str): The symbol to search for.
+
+        Returns:
+            list: List of symbol objects, as returned by the API.
+
+        Raises:
+            Exception: If there was an error in the GET request or if the status code is not 200 OK.
+        """
+        headers = {
+            "Authorization": f"{self.session_token}"
+        }
+
+        response = requests.get(f"{self.api_url}/symbols/search/{symbol}", headers=headers)
+
+        if response.status_code == 200:
+            response_data = json.loads(response.content)
+            symbol_data = response_data["data"]["items"]
+            return symbol_data
+        else:
+            raise Exception(f"Error getting symbol data for {symbol}: {response.status_code} - {response.content}")
 
