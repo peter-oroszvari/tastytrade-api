@@ -84,3 +84,29 @@ class TastytradeAccount:
             return account
         else:
             raise Exception(f"Error getting account {account_number}: {response.status_code} - {response.content}")
+        
+    def get_margin_requirements(self, account_number):
+        """
+        Makes a GET request to the /margin/accounts/{account_number}/requirements API endpoint for the specified account's 
+        margin/capital requirements report, and returns the report object.
+
+        Args:
+            account_number (str): The account number for the account to retrieve.
+
+        Returns:
+            dict: Dictionary containing the margin/capital requirements report, as returned by the API.
+
+        Raises:
+            Exception: If there was an error in the GET request or if the status code is not 200 OK.
+        """
+        headers = {
+            "Authorization": f"{self.session_token}"
+        }
+        response = requests.get(f"{self.api_url}/margin/accounts/{account_number}/requirements", headers=headers)
+        if response.status_code == 200:
+            response_data = json.loads(response.content)
+            report = response_data["data"]
+            return report
+        else:
+            raise Exception(f"Error getting margin requirements for account {account_number}: {response.status_code} - {response.content}")
+
