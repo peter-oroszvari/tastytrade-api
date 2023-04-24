@@ -1,6 +1,6 @@
-# Tastytrade API
+# Tastytrade API Python SDK
 
-_The Tastytrade API, which my Python module relies on, is currently in beta and not yet publicly accessible. As a result, you may not be able to test the functionality of this module until the API becomes available for public use._
+_The Tastytrade API, which my Python module relies on, is currently in beta._
 
 A Python client for the Tastytrade API, providing convenient access to Tastytrade's REST API for trading, account management, and more.
 
