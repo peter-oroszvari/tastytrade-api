@@ -1,138 +1,126 @@
-import websocket
-import threading
+import asyncio
 import json
-import time
-from .dx_mapping import Quote
+import websockets
+import logging
 
-class DxFeedClient:
-    HEARTBEAT_INTERVAL_SECONDS = 10
-    def __init__(self, url, auth_token):
+logger = logging.getLogger(__name__)
+
+class CometdWebsocketClient:
+    def __init__(self, url, auth_token, on_handshake_success=None):
         self.url = url
         self.auth_token = auth_token
-        self.ws = None
-        self.client_id = None
-        self.last_heartbeat_sent = time.time()
-        self.handshake_complete = threading.Event()
+        self.on_handshake_success = on_handshake_success
+        self.message_id = 0
     
-    def send_heartbeat(self):
-        while True:
-            time.sleep(self.HEARTBEAT_INTERVAL_SECONDS)
-            heartbeat_message = {
-                "channel": "/meta/connect",
-                "clientId": self.client_id,
-                "connectionType": "websocket"
-            }
-            self.ws.send(json.dumps([heartbeat_message]))
-            
-    def on_message(self, ws, message):
-        msg = json.loads(message)
-        # print(msg)
-        #print("----------------")
-        #print("Message received", msg)
-        #print("----------------")
-           
-        if msg[0]["channel"] == "/meta/handshake":
-            if msg[0]["successful"]:
-                self.client_id = msg[0]["clientId"]
-                self.handshake_complete.set()
-            else:
-                print("Handshake failed")
-        elif msg[0]["channel"] == "/meta/subscribe":
-            if msg[0]["successful"]:
-                print(f"Successfully subscribed to {msg[0]['subscription']}")
-            else:
-                print("Subscription failed")
-        #elif msg[0]["channel"] == "/data/Quote":
-        #   print('!!!!!!!!!!! DATA QUOTE')
-        elif msg[0]["channel"] == "/service/data":
-            quotes = Quote.from_json(json.dumps(msg))
-            for quote in quotes:
-                print(str(quote))
+    def next_id(self):
+        self.message_id += 1
+        return str(self.message_id)
 
-        
-    def on_error(self, ws, error):
-        print(f"Error: {error}")
+    async def connect(self):
+        headers = {
+            'Authorization': 'Bearer ' + self.auth_token,
+            'User-Agent': 'My Python App'
+        }
 
-    def on_close(self, ws, close_status_code, close_msg):
-        print("WebSocket closed")
+        async with websockets.connect(self.url, extra_headers=headers) as websocket:
+            self.websocket = websocket
+            handshake = asyncio.create_task(self.send_handshake(websocket))
+            heartbeat = asyncio.create_task(self.send_heartbeat(websocket))
+            listen = asyncio.create_task(self.listen(websocket))
+            await asyncio.gather(handshake, heartbeat, listen)
 
-    def on_open(self, ws):
-        print("WebSocket opened")
-        self.handshake()
-        self.start_heartbeat()
-    
-    def start_heartbeat(self):
-        t = threading.Thread(target=self.send_heartbeat)
-        t.daemon = True
-        t.start()
-
-    def handshake(self):
+    async def send_handshake(self, websocket):
         handshake_message = {
-            "channel": "/meta/handshake",
+            "id": self.next_id(),
             "version": "1.0",
             "minimumVersion": "1.0",
-            "supportedConnectionTypes": ["websocket"],
+            "channel": "/meta/handshake",
+            "supportedConnectionTypes": ["websocket","long-polling","callback-polling"],
             "ext": {
-                "com.devexperts.auth.AuthToken":  self.auth_token}
+                "com.devexperts.auth.AuthToken":  self.auth_token
+            },
+            "advice": {
+                "timeout":60000,
+                "interval":0
+            }
         }
-        self.ws.send(json.dumps([handshake_message]))
+        handshake_str = json.dumps([handshake_message])
+        await websocket.send(handshake_str)
 
-    def subscribe(self, event_type, symbol):
+    async def send_subscription_message(self, websocket, event_type, symbol):
         subscription_message = {
+            "id": self.next_id(),
             "channel": "/service/sub",
             "clientId": self.client_id,
             "data": {
-                "reset": False,
+                "reset": True,
                 "add": {
                     event_type: [symbol]
                 }
             }
         }
-        self.ws.send(json.dumps([subscription_message]))
-        
+        subscription_str = json.dumps([subscription_message])
+        await websocket.send(subscription_str)
 
-    def connect(self):
-        headers = {
-            'Authorization': 'Bearer ' + self.auth_token,
-            'User-Agent': 'My Python App'
+    async def listen(self, websocket):
+        while True:
+            message = await websocket.recv()
+            await self.handle_message(message)
+        
+    async def handle_message(self, message):
+        data = json.loads(message)
+        logger.debug(f"Received message: {data}")
+
+        if data and isinstance(data, list) and "channel" in data[0]:
+            channel = data[0]["channel"]
+
+            if channel == "/meta/handshake":
+                await self.process_handshake(data[0])
+
+            elif channel == "/service/sub":
+                if data[0].get("successful", False):
+                    logger.debug("Subscription successful")
+                    await self.send_connect_message(self.websocket)
+                else:
+                    logger.warning("Subscription failed")
+            
+            elif channel == "/data":
+                if data[0].get("data"):
+                    logger.info(f"Data message received: {data[0]['data']}")
+                else:
+                    logger.warning("Data message has no data field")
+
+        else:
+            logger.warning(f"Unexpected message format: {message}")
+
+
+    async def process_handshake(self, handshake_data):
+        if "successful" in handshake_data and handshake_data["successful"] and "clientId" in handshake_data:
+            self.client_id = handshake_data["clientId"]
+            logger.debug(f"Handshake successful, client ID: {self.client_id}")
+
+                    # Call the on_handshake_success callback if provided
+            if self.on_handshake_success:
+                await self.on_handshake_success(self)
+
+
+    async def send_connect_message(self, websocket):
+        connect_message = {
+            "id": self.next_id(),
+            "channel": "/meta/connect",
+            "clientId": self.client_id,
+            "connectionType": "websocket"
         }
-        self.ws = websocket.WebSocketApp(self.url,
-                                         on_message=self.on_message,
-                                         on_error=self.on_error,
-                                         on_close=self.on_close,
-                                         on_open=self.on_open,
-                                         header=headers)
-        websocket_thread = threading.Thread(target=self.ws.run_forever)
-        websocket_thread.daemon = True
-        websocket_thread.start()
+        connect_str = json.dumps([connect_message])
+        await websocket.send(connect_str)
         
-
-"""
-auth_token = 'xxx'
-websocket_url = 'wss://tasty-live-web.dxfeed.com/live/cometd'
-
-# websocket.enableTrace(True) # Enable trace for debugging purposes
-
-client = DxFeedClient(websocket_url, auth_token)
-client.connect()
-
-# Wait for the connection to be established and the handshake to be completed
-client.handshake_complete.wait()
-
-client.subscribe("Quote", "AAPL")
-client.subscribe("Quote", "TSLA")
-
-# Start the heartbeat thread
-#heartbeat_thread = threading.Thread(target=client.send_heartbeat)
-#heartbeat_thread.daemon = True
-#heartbeat_thread.start()
-
-# Subscribe to Quotes for AAPL
-# client.subscribe("Profile", "IBM")
-
-
-# Keep the connection open and process messages
-while True:
-    time.sleep(1)
-
-"""
+    async def send_heartbeat(self, websocket):
+        while True:
+            await asyncio.sleep(10)  # Send the heartbeat every 10 seconds
+            heartbeat_message = {
+                 "id": self.next_id(),
+                "channel": "/meta/connect",
+                "clientId": self.client_id,
+                "connectionType": "websocket"
+            }
+            await websocket.send(json.dumps([heartbeat_message]))
