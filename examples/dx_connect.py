@@ -1,8 +1,10 @@
 import asyncio
 from tastytrade_api.streamer.dxfeed_handler import CometdWebsocketClient
+from tastytrade_api.streamer.dx_mapping import Quote
 import logging
 from tastytrade_api.authentication import TastytradeAuth
 import configparser
+import json
 
 
 logger = logging.getLogger(__name__)
@@ -29,20 +31,33 @@ logger.debug('DxFeed Token:', dxfeedtoken)
 
 async def on_handshake_success(client):
     event_type = "Quote"
-    symbol = "AAPL"
-    await client.send_subscription_message(client.websocket, event_type, symbol)
-
-
-
+    symbols = ["/VXMV23:XCBF", "AAPL"]
+    for symbol in symbols:
+        await client.send_subscription_message(client.websocket, event_type, symbol)   
+     
+async def consume_data(queue):
+    while True:
+        data = await queue.get()
+        if data is None:
+            break
+        try:
+            print("This is the raw data: ", data)
+            quotes = Quote.from_list(data)
+            for quote in quotes:
+                print("Data received in script:", quote)
+        except ValueError:
+            print("Invalid data list received")
+        
 async def main():
     websocket_url = 'wss://tasty-live-web.dxfeed.com/live/cometd'
+    data_queue = asyncio.Queue()
 
-    client = CometdWebsocketClient(websocket_url, dxfeedtoken, on_handshake_success)
+    client = CometdWebsocketClient(websocket_url, dxfeedtoken, data_queue, on_handshake_success)
+    
+    connect_task = asyncio.create_task(client.connect())
+    consume_data_task = asyncio.create_task(consume_data(data_queue))
 
-    await client.connect()
-
-    listen_task = asyncio.create_task(client.listen(client.websocket))
-    await listen_task
+    await asyncio.gather(connect_task, consume_data_task)
 
 if __name__ == "__main__":
     asyncio.run(main(), debug = True)
