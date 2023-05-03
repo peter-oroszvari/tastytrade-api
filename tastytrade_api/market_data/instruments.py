@@ -1,8 +1,7 @@
 import requests
 import json
-from typing import List
+from typing import List, Dict, Any
 import urllib
-
 class TastytradeInstruments:
     """
     Implements the Tastytrade Instruments API - https://developer.tastytrade.com/open-api-spec/instruments/
@@ -386,7 +385,25 @@ class TastytradeInstruments:
     """
     TBD: Future options chanins and option chains implementation
     """
+    def get_option_chains(self, symbol: str):
+        """
+        Returns an option chain given an underlying symbol,
 
+        Args:
+            symbol (str): _description_
+        """
+        headers = {
+            "Authorization": f"{self.session_token}"
+        }
+        response = requests.get(f"{self.api_url}/option-chains/{symbol}/nested", headers=headers)     
+       
+        if response.status_code == 200:
+            response_data = json.loads(response.content)
+            option_chain = response_data["data"]["items"]
+            return option_chain
+        else:
+            raise Exception(f"Error getting symbol data for {symbol}: {response.status_code} - {response.content}")           
+        
     def get_symbol_data(self, symbol: str) -> List[Dict[str, Any]]:
         """
         Makes a GET request to the /symbols/search/{symbol} API endpoint and returns an array of symbol data.
@@ -412,4 +429,3 @@ class TastytradeInstruments:
             return symbol_data
         else:
             raise Exception(f"Error getting symbol data for {symbol}: {response.status_code} - {response.content}")
-
