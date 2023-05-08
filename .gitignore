@@ -3,3 +3,4 @@ tastytrade_api.egg-info
 build/
 __pycache__/
 config.ini
+.vscode/settings.json
