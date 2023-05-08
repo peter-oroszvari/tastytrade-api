@@ -1,6 +1,7 @@
 import requests
 import json
 
+
 class TastytradeAccountPositions:
     """
     Initializes a new instance of the API client with the given session token and API URL.
@@ -12,11 +13,23 @@ class TastytradeAccountPositions:
     Returns:
         None
     """
+
     def __init__(self, session_token, api_url):
         self.session_token = session_token
         self.api_url = api_url
 
-    def get_positions(self, account_number, underlying_symbol=None, symbol=None, instrument_type=None, include_closed_positions=False, underlying_product_code=None, partition_keys=None, net_positions=False, include_marks=False):
+    def get_positions(
+        self,
+        account_number,
+        underlying_symbol=None,
+        symbol=None,
+        instrument_type=None,
+        include_closed_positions=False,
+        underlying_product_code=None,
+        partition_keys=None,
+        net_positions=False,
+        include_marks=False,
+    ):
         """
         Makes a GET request to the /accounts/{account_number}/positions API endpoint for the specified account's positions,
         and returns a list of position objects.
@@ -38,9 +51,7 @@ class TastytradeAccountPositions:
         Raises:
             Exception: If there was an error in the GET request or if the status code is not 200 OK.
         """
-        headers = {
-            "Authorization": f"{self.session_token}"
-        }
+        headers = {"Authorization": f"{self.session_token}"}
         params = {
             "underlying-symbol": underlying_symbol,
             "symbol": symbol,
@@ -51,13 +62,19 @@ class TastytradeAccountPositions:
             "net-positions": net_positions,
             "include-marks": include_marks,
         }
-        response = requests.get(f"{self.api_url}/accounts/{account_number}/positions", headers=headers, params=params)
+        response = requests.get(
+            f"{self.api_url}/accounts/{account_number}/positions",
+            headers=headers,
+            params=params,
+        )
         if response.status_code == 200:
             response_data = json.loads(response.content)
             positions = response_data["data"]["items"]
             return positions
         else:
-            raise Exception(f"Error getting positions: {response.status_code} - {response.content}")
+            raise Exception(
+                f"Error getting positions: {response.status_code} - {response.content}"
+            )
 
     def get_account_balances(self, account_number):
         """
@@ -73,17 +90,22 @@ class TastytradeAccountPositions:
         Raises:
             Exception: If there was an error in the GET request or if the status code is not 200 OK.
         """
-        headers = {
-            "Authorization": f"{self.session_token}"
-        }
-        response = requests.get(f"{self.api_url}/accounts/{account_number}/balances", headers=headers)
+        headers = {"Authorization": f"{self.session_token}"}
+        response = requests.get(
+            f"{self.api_url}/accounts/{account_number}/balances", headers=headers
+        )
         if response.status_code == 200:
             response_data = json.loads(response.content)
             balances = response_data["data"]
             return balances
         else:
-            raise Exception(f"Error getting account balances: {response.status_code} - {response.content}")
-    def get_balance_snapshots(self, account_number, snapshot_date=None, time_of_day="EOD"):
+            raise Exception(
+                f"Error getting account balances: {response.status_code} - {response.content}"
+            )
+
+    def get_balance_snapshots(
+        self, account_number, snapshot_date=None, time_of_day="EOD"
+    ):
         """
         Makes a GET request to the /accounts/{account_number}/balance-snapshots API endpoint for the specified account's
         balance snapshots, and returns the most recent snapshot and current balance.
@@ -99,16 +121,17 @@ class TastytradeAccountPositions:
         Raises:
             Exception: If there was an error in the GET request or if the status code is not 200 OK.
         """
-        headers = {
-            "Authorization": f"{self.session_token}"
-        }
-        params = {
-            "snapshot-date": snapshot_date,
-            "time-of-day": time_of_day
-        }
-        response = requests.get(f"{self.api_url}/accounts/{account_number}/balance-snapshots", headers=headers, params=params)
+        headers = {"Authorization": f"{self.session_token}"}
+        params = {"snapshot-date": snapshot_date, "time-of-day": time_of_day}
+        response = requests.get(
+            f"{self.api_url}/accounts/{account_number}/balance-snapshots",
+            headers=headers,
+            params=params,
+        )
         if response.status_code == 200:
             response_data = json.loads(response.content)
             return response_data
         else:
-            raise Exception(f"Error getting balance snapshots: {response.status_code} - {response.content}")
+            raise Exception(
+                f"Error getting balance snapshots: {response.status_code} - {response.content}"
+            )
