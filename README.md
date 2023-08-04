@@ -12,10 +12,15 @@ Install the package using pip:
 pip install tastytrade-api
 ```
 
-## USAGE
+## Usage
 
-Here's an example of how to use the Tastytrade API client:
+### Login
+Provide your Tastytrade username and password and authenticate with the API. This has to be done first
+since the session token obtained will be used in subsequent API calls. Any authentication failure will raise
+a ValidationError exception.
+
 ```python
+from tastytrade_api import ValidationError
 from tastytrade_api.authentication import TastytradeAuth
 
 username = "your_username"
@@ -25,26 +30,19 @@ password = "your_password"
 auth = TastytradeAuth(username, password)
 
 # Log in to the API
-auth_data = auth.login()
+try:
+    auth_data = auth.login()
+except ValidationError as e:
+    print(e)
+```
 
-if auth_data:
-    print("Successfully logged in!")
-else:
-    print("Failed to log in.")
-
-# Validate the session
-is_valid = auth.validate_session()
-
-if is_valid:
-    print("Session is valid.")
-else:
-    print("Session is invalid or expired.")
-
+### Logout
+```python
 # Destroy the session (log out)
-if auth.destroy_session():
-    print("Successfully logged out.")
-else:
-    print("Failed to log out.")
+try:
+    auth.destroy_session()
+except ValidationError as e:
+    print(e)
 ```
 
 ## Development

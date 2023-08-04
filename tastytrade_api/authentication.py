@@ -1,21 +1,40 @@
 import requests
 import time
 from typing import Dict, Optional
-
-from . import API_URL
-
+from .exceptions import ValidationError
 
 class TastytradeAuth:
     def __init__(self, username: str, password: str = None, remember_token: str = None):
         self.username = username
         self.password = password
         self.remember_token = remember_token
-        self.url = f"{API_URL}/sessions"
+        self.url = "https://api.tastyworks.com"
         self.session_token = None
         self.user_data = None
         self.token_timestamp = None
 
-    def login(self, two_factor_code: str = None) -> Optional[Dict[str, str]]:
+    def _raise_validation_error(self, response):
+        raise ValidationError(
+            f"\nurl: {self.url}\n" \
+            f"session_token: {self.session_token}\n" \
+            f"user_data: {self.user_data}\n" \
+            f"status_code: {response.status_code}\n" \
+            f"reason: {response.reason}\n" \
+            f"text: {response.text}")
+
+    def login(self, two_factor_code: str = None) -> Dict[str, str]:
+        """
+        Creates a new user session with the Tastytrade API, using the username and password stored in the class.
+
+        Args:
+            two_factor_code (str): Specifies the two-factor authentication code, if the account has enabled it.
+
+        Returns:
+            Optional[Dict[str, str]]: A dictionary containing the user's session token and other related data.
+
+        Raises:
+            ValidationError: if the session is invalid or there's an error.
+        """
         payload = {"login": self.username, "remember-me": "true"}
 
         if self.password:
@@ -23,14 +42,13 @@ class TastytradeAuth:
         elif self.remember_token:
             payload["remember-token"] = self.remember_token
         else:
-            print("Error: Either password or remember token must be provided")
-            return None
+            raise ValidationError("Either password or remember token must be provided")
 
         headers = {}
         if two_factor_code:
             headers["X-Tastyworks-OTP"] = two_factor_code
 
-        response = requests.post(self.url, headers=headers, data=payload)
+        response = requests.post(f"{self.url}/sessions", headers=headers, data=payload)
 
         if response.status_code == 201:
             data = response.json()
@@ -40,76 +58,66 @@ class TastytradeAuth:
             self.token_timestamp = time.time()
             return data
         else:
-            print(f"Error: {response.status_code}")
-            return None
+            self._raise_validation_error(response)
 
-    def validate_session(self) -> Optional[Dict[str, str]]:
+    def validate_session(self) -> Dict[str, str]:
         """
         Validates the current session using the session token.
 
         Returns:
             Optional[Dict[str, str]]: A dictionary containing the user data if the session is valid.
-            Returns None if the session is invalid or there's an error.
-        """
-        url = f"{API_URL}/sessions/validate"
-        headers = {"Authorization": self.session_token}
 
-        response = requests.post(url, headers=headers)
+        Raises:
+            ValidationError: if the session is invalid or there's an error.
+        """
+        headers = {"Authorization": self.session_token}
+        response = requests.post(f"{self.url}/sessions/validate", headers=headers)
 
         if response.status_code == 200:
             data = response.json()
             return data
         else:
-            print(f"Error: {response.status_code}")
-            print("Response text:", response.text)
+            self._raise_validation_error(response)
 
-            return None
-
-    def destroy_session(self) -> bool:
+    def destroy_session(self):
         """
         Destroys the current session, logging the user out.
 
-        Returns:
-            bool: True if the session was successfully destroyed, False otherwise.
+        Raises:
+            ValidationError: if the session is invalid or there's an error.
         """
-
         headers = {"Authorization": self.session_token}
-
-        response = requests.delete(self.url, headers=headers)
+        response = requests.delete(f"{self.url}/sessions", headers=headers)
 
         if response.status_code == 204:
             self.session_token = None
             self.remember_token = None
             self.user_data = None
-            return True
         else:
-            print(f"Error: {response.status_code}")
-            return False
+            self._raise_validation_error(response)
 
-    def get_dxfeed_token(self) -> Optional[Dict[str, str]]:
+    def get_dxfeed_token(self) -> Dict[str, str]:
         """
         Retrieves the dxfeed token by making a request to the Tastytrade endpoint.
 
         Returns:
             Optional[Dict[str, str]]: A dictionary containing the dxfeed token and other related data.
             Returns None if there's an error.
+
+        Raises:
+            ValidationError: if the session is invalid or there's an error.
         """
-        if not self.session_token:
-            print("Error: Session token not found. Please login first.")
-            return None
+        self.validate_session()
 
-        url = f"{API_URL}/quote-streamer-tokens"
+        url = f"{self.url}/quote-streamer-tokens"
         headers = {"Authorization": self.session_token}
-
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
             data = response.json()
             return data
         else:
-            print(f"Error: {response.status_code}")
-            print("Response text:", response.text)
-            return None
+            self._raise_validation_error(response)
 
     def create_session(
         self,
@@ -117,7 +125,7 @@ class TastytradeAuth:
         password: str,
         remember_me: bool = False,
         remember_token: str = None,
-    ) -> Optional[Dict[str, str]]:
+    ) -> Dict[str, str]:
         """
         Creates a new user session with the Tastytrade API, using the specified username and password.
 
@@ -131,6 +139,9 @@ class TastytradeAuth:
         Returns:
             Optional[Dict[str, str]]: A dictionary containing the user's session token and other related data.
             Returns None if there's an error.
+
+        Raises:
+            ValidationError: if the session is invalid or there's an error.
         """
         payload = {
             "login": username,
@@ -140,7 +151,7 @@ class TastytradeAuth:
         }
 
         headers = {}
-        response = requests.post(self.url, headers=headers, json=payload)
+        response = requests.post(f"{self.url}/sessions", headers=headers, json=payload)
 
         if response.status_code == 201:
             data = response.json()
@@ -150,5 +161,4 @@ class TastytradeAuth:
             self.token_timestamp = time.time()
             return data
         else:
-            print(f"Error: {response.status_code}")
-            return None
+            self._raise_validation_error(response)
