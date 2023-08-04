@@ -6,9 +6,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import unittest
 import requests_mock
 from tastytrade_api.authentication import TastytradeAuth
+from tastytrade_api import ValidationError
 
 class TestTastytradeAuth(unittest.TestCase):
-    API_URL = "https://api.tastytrade.com/sessions"
+    url = "https://api.tastyworks.com/sessions"
 
     def setUp(self):
         self.username = "test_username"
@@ -29,7 +30,7 @@ class TestTastytradeAuth(unittest.TestCase):
             },
             'context': '/sessions'
         }
-        mock.post(self.API_URL, json=mock_response, status_code=201)
+        mock.post(self.url, json=mock_response, status_code=201)
 
         auth_data = self.auth.login()
 
@@ -44,18 +45,9 @@ class TestTastytradeAuth(unittest.TestCase):
 
     @requests_mock.Mocker()
     def test_login_failure(self, mock):
-        mock.post(self.API_URL, status_code=400)
-
-        auth_data = self.auth.login()
-
-        with self.subTest("Check auth_data"):
-            self.assertIsNone(auth_data)
-        with self.subTest("Check session_token"):
-            self.assertIsNone(self.auth.session_token)
-        with self.subTest("Check remember_token"):
-            self.assertIsNone(self.auth.remember_token)
-        with self.subTest("Check user_data"):
-            self.assertIsNone(self.auth.user_data)
+        mock.post(self.url, status_code=400)
+        with self.assertRaises(ValidationError):
+            self.auth.login()
 
     @requests_mock.Mocker()
     def test_login_success_with_two_factor(self, mock):
@@ -72,9 +64,10 @@ class TestTastytradeAuth(unittest.TestCase):
             },
             'context': '/sessions'
         }
-        mock.post(self.API_URL, json=mock_response, status_code=201)
+        mock.post(self.url, json=mock_response, status_code=201)
 
-        auth_data = self.auth.login(two_factor_code=two_factor_code)
+        with self.subTest("Check that the login is successful"):
+            auth_data = self.auth.login(two_factor_code=two_factor_code)
 
         with self.subTest("Check auth_data"):
             self.assertIsNotNone(auth_data)
@@ -87,13 +80,12 @@ class TestTastytradeAuth(unittest.TestCase):
 
     @requests_mock.Mocker()
     def test_destroy_session(self, mock):
-        mock.delete(self.API_URL, status_code=204)
-
+        mock.delete(self.url, status_code=204)
         self.auth.session_token = "st-abcabc123123"
-        destroy_result = self.auth.destroy_session()
 
-        with self.subTest("Check destroy_result"):
-            self.assertTrue(destroy_result)
+        with self.subTest("Check that destroy session is successful"):
+            self.auth.destroy_session()
+
         with self.subTest("Check session_token"):
             self.assertIsNone(self.auth.session_token)
         with self.subTest("Check remember_token"):
@@ -103,13 +95,13 @@ class TestTastytradeAuth(unittest.TestCase):
 
     @requests_mock.Mocker()
     def test_destroy_session_failure(self, mock):
-        mock.delete(self.API_URL, status_code=400)
-
+        mock.delete(self.url, status_code=400)
         self.auth.session_token = "st-abcabc123123"
-        destroy_result = self.auth.destroy_session()
 
-        with self.subTest("Check destroy_result"):
-            self.assertFalse(destroy_result)
+        with self.subTest("Check that destroy session fails"):
+            with self.assertRaises(ValidationError):
+                self.auth.destroy_session()
+
         with self.subTest("Check session_token"):
             self.assertIsNotNone(self.auth.session_token)
 
